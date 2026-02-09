@@ -7,15 +7,14 @@ export * from "./models/auth";
 export const gameSaves = pgTable("game_saves", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id),
-  name: text("name").notNull(), // e.g. "AutoSave", "Save 1"
-  data: jsonb("data").notNull(), // The game state S
+  name: text("name").notNull(),
+  data: jsonb("data").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertGameSaveSchema = createInsertSchema(gameSaves).omit({
   id: true,
-  userId: true,
   createdAt: true,
   updatedAt: true
 });

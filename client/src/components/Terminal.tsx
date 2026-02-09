@@ -34,6 +34,7 @@ export function Terminal({ log, dialogue, gameState }: TerminalProps) {
               entry.type === 'info' && "text-[#5a9aba]",
               entry.type === 'accent' && "text-[#d4944c] font-bold",
               entry.type === 'npc' && "text-[#caa848]",
+              entry.type === 'dim' && "text-[#706848]",
               !entry.type && "text-[#c8b88a]" // Default
             )}
           >

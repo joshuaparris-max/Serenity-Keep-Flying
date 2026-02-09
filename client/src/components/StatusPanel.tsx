@@ -22,7 +22,7 @@ export function StatusPanel({ state }: StatusPanelProps) {
               <span>Hull Integrity</span>
               <span>{state.ship.hull}%</span>
             </div>
-            <Progress value={state.ship.hull} className="h-2 bg-[#0a0908] border border-[#2a2820]" indicatorClassName={state.ship.hull < 30 ? "bg-red-500" : "bg-[#5a5]"} />
+            <Progress value={state.ship.hull} className="h-2 bg-[#0a0908] border border-[#2a2820]" />
           </div>
           
           <div className="space-y-1">
@@ -30,7 +30,7 @@ export function StatusPanel({ state }: StatusPanelProps) {
               <span>Fuel Reserves</span>
               <span>{state.ship.fuel}%</span>
             </div>
-            <Progress value={state.ship.fuel} className="h-2 bg-[#0a0908] border border-[#2a2820]" indicatorClassName="bg-[#d4944c]" />
+            <Progress value={state.ship.fuel} className="h-2 bg-[#0a0908] border border-[#2a2820]" />
           </div>
 
           <div className="space-y-1">
@@ -38,7 +38,7 @@ export function StatusPanel({ state }: StatusPanelProps) {
               <span>Engine Heat</span>
               <span>{state.ship.heat}%</span>
             </div>
-            <Progress value={state.ship.heat} className="h-2 bg-[#0a0908] border border-[#2a2820]" indicatorClassName="bg-red-500" />
+            <Progress value={state.ship.heat} className="h-2 bg-[#0a0908] border border-[#2a2820]" />
           </div>
         </div>
       </div>

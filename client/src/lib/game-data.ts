@@ -74,7 +74,7 @@ export const INITIAL_STATE = {
 };
 
 export type GameState = typeof INITIAL_STATE;
-export type LogEntry = { turn: number; text: string; type?: 'system' | 'error' | 'success' | 'info' | 'accent' | 'npc' };
+export type LogEntry = { turn: number; text: string; type?: 'system' | 'error' | 'success' | 'info' | 'accent' | 'npc' | 'dim' };
 
 export const DIALOGUE_TREES: Record<string, Record<string, any>> = {
   mal: {
