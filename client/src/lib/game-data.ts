@@ -66,11 +66,80 @@ export const INITIAL_STATE = {
   morale:5,
   quests:{cargo:{status:'available',stage:0},salvage:{status:'locked',stage:0},heist:{status:'locked',stage:0}} as Record<string, {status: string, stage: number}>,
   flags:{} as Record<string, any>,
-  log:[{turn:0, text:"Welcome aboard Serenity, Captain.", type: 'system'}],
+  log:[{turn:0, text:"Welcome aboard Serenity, Captain.", type: 'system'}] as LogEntry[],
   roomItems:{} as Record<string, string[]>,
   removed:{} as Record<string, string[]>,
-  wins:0
+  wins:0,
+  dialogue: null as { npcId: string, nodeId: string } | null
 };
 
 export type GameState = typeof INITIAL_STATE;
 export type LogEntry = { turn: number; text: string; type?: 'system' | 'error' | 'success' | 'info' | 'accent' | 'npc' };
+
+export const DIALOGUE_TREES: Record<string, Record<string, any>> = {
+  mal: {
+    start: {
+      text: "Got something on your mind, or just looking to use up my air?",
+      options: [
+        { text: "Just checking in, Captain.", nextNodeId: "checking_in" },
+        { text: "Any jobs on the horizon?", nextNodeId: "jobs", condition: (s: GameState) => s.quests.cargo.status === 'available' },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    checking_in: {
+      text: "Well, we're still flying. That's about the best news I got. Get back to your post.",
+      options: [{ text: "Yes, sir.", action: 'end' }]
+    },
+    jobs: {
+      text: "Badger's got a load of medical supplies sitting on Persephone. Needs 'em moved to a rim outpost. Quiet-like. You interested?",
+      options: [
+        { text: "I'll handle it.", nextNodeId: "accept_job", action: (s: any) => ({ ...s, quests: { ...s.quests, cargo: { ...s.quests.cargo, status: 'active' } } }) },
+        { text: "Maybe later.", nextNodeId: "start" }
+      ]
+    },
+    accept_job: {
+      text: "Good. Talk to Kaylee, make sure the bird's ready for the black. And stay off the Alliance scanners.",
+      options: [{ text: "Understood.", action: 'end' }]
+    }
+  },
+  kaylee: {
+    start: {
+      text: "Hey there! Serenity's purring like a kitten today, mostly. You need something fixed?",
+      options: [
+        { text: "How's the engine holding up?", nextNodeId: "engine_talk" },
+        { text: "Captain sent me. We're heading out soon.", nextNodeId: "prep_talk", condition: (s: GameState) => s.quests.cargo.status === 'active' },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    engine_talk: {
+      text: "She's a bit cranky in the third compression coil, but I've got it patched with some grease and a prayer.",
+      options: [{ text: "You're a miracle worker.", nextNodeId: "miracle", action: (s: any) => ({ ...s, rel: { ...s.rel, kaylee: (s.rel.kaylee || 0) + 1 } }) }]
+    },
+    miracle: {
+      text: "Aw, stop it. She's the one doing the hard work. I just listen to her.",
+      options: [{ text: "See you later, Kaylee.", action: 'end' }]
+    },
+    prep_talk: {
+      text: "Oh! I'll get right on it. Just need to tighten a few things down. We're ready when you are!",
+      options: [{ text: "Thanks, Kaylee.", action: 'end' }]
+    }
+  },
+  book: {
+    start: {
+      text: "A little quiet contemplation is good for the soul, Captain. What can I do for you?",
+      options: [
+        { text: "Any advice for the road ahead?", nextNodeId: "advice" },
+        { text: "Just looking for some tea.", nextNodeId: "tea_talk" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    advice: {
+      text: "The path isn't always straight, but as long as you keep your internal compass true, you'll find your way.",
+      options: [{ text: "Deep. Thanks, Shepherd.", action: 'end' }]
+    },
+    tea_talk: {
+      text: "It's always steeping. Help yourself. It helps with the nerves.",
+      options: [{ text: "I might do that.", action: 'end' }]
+    }
+  }
+};

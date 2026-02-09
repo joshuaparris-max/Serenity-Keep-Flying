@@ -1,19 +1,24 @@
 import { useEffect, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { type LogEntry } from '@/lib/game-data';
+import { type LogEntry, DIALOGUE_TREES } from '@/lib/game-data';
 
 interface TerminalProps {
   log: LogEntry[];
+  dialogue?: { npcId: string, nodeId: string } | null;
+  gameState?: any;
 }
 
-export function Terminal({ log }: TerminalProps) {
+export function Terminal({ log, dialogue, gameState }: TerminalProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [log]);
+  }, [log, dialogue]);
+
+  const dialogueNode = dialogue ? DIALOGUE_TREES[dialogue.npcId][dialogue.nodeId] : null;
+  const availableOptions = dialogueNode?.options.filter((opt: any) => !opt.condition || opt.condition(gameState)) || [];
 
   return (
     <ScrollArea className="h-full w-full bg-transparent p-4 font-mono text-lg scrollbar-terminal">
@@ -35,6 +40,20 @@ export function Terminal({ log }: TerminalProps) {
             {entry.text}
           </div>
         ))}
+        
+        {dialogue && (
+          <div className="mt-4 p-3 border border-[#2a2820] bg-[#12110e]/50 rounded-sm">
+            <div className="text-[#706848] text-xs uppercase mb-2 tracking-widest">Available Options:</div>
+            {availableOptions.map((opt: any, i: number) => (
+              <div key={i} className="text-[#c8b88a] hover:text-[#d4944c] cursor-pointer py-1 transition-colors">
+                <span className="text-[#d4944c] mr-2">[{i + 1}]</span>
+                {opt.text}
+              </div>
+            ))}
+            <div className="text-[#706848] text-xs mt-3 italic">Type the number to respond, or 'end' to leave.</div>
+          </div>
+        )}
+        
         <div ref={endRef} />
       </div>
     </ScrollArea>
