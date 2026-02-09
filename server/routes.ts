@@ -29,7 +29,7 @@ export async function registerRoutes(
       const userId = req.user!.claims.sub;
       const input = api.saves.save.input.parse(req.body);
       // Force user ID from session
-      const save = await storage.createGameSave({ ...input, userId });
+      const save = await storage.createGameSave({ ...input, userId, createdAt: new Date(), updatedAt: new Date() });
       res.status(201).json(save);
     } catch (err) {
       if (err instanceof z.ZodError) {

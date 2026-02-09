@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { ROOMS, ITEMS, NPCS, INITIAL_STATE, type GameState, type LogEntry } from '@/lib/game-data';
+import { ROOMS, ITEMS, NPCS, INITIAL_STATE, DIALOGUE_TREES, type GameState, type LogEntry } from '@/lib/game-data';
 
 export function useGame() {
   const [state, setState] = useState<GameState>(JSON.parse(JSON.stringify(INITIAL_STATE)));
