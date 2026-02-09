@@ -85,7 +85,11 @@ export default function GamePage() {
         {/* TERMINAL AREA */}
         <div className="flex-1 flex flex-col min-w-0 bg-[#0a0908] relative">
           <div className="flex-1 overflow-hidden relative">
-            <Terminal log={gameState.log} />
+            <Terminal 
+              log={gameState.log} 
+              dialogue={gameState.dialogue} 
+              gameState={gameState}
+            />
           </div>
           
           {/* INPUT AREA */}

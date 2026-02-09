@@ -180,17 +180,89 @@ export function useGame() {
     addLog("  look, l ............. View surroundings");
     addLog("  go [dir] ............ Move (north, south, east, west, up, down)");
     addLog("  take [item] ......... Pick up an item");
+    addLog("  talk [npc] .......... Speak with someone");
     addLog("  inv, i .............. Check inventory");
     addLog("  status .............. Check ship and crew status");
     addLog("  wait ................ Pass time");
     addLog("  clear ............... Clear terminal");
   }, [addLog]);
 
+  const talk = useCallback((npcName: string) => {
+    const here = Object.entries(NPCS).filter(([id, npc]) => npc.location === state.player.location);
+    const npcId = here.find(([id, npc]) => 
+      id === npcName || npc.name.toLowerCase().includes(npcName.toLowerCase())
+    )?.[0];
+
+    if (npcId) {
+      if (DIALOGUE_TREES[npcId]) {
+        setState(prev => ({
+          ...prev,
+          dialogue: { npcId, nodeId: 'start' }
+        }));
+        const node = DIALOGUE_TREES[npcId].start;
+        addLog(`${NPCS[npcId].name}: "${node.text}"`, "npc");
+      } else {
+        addLog(`${NPCS[npcId].name} doesn't have much to say.`, "npc");
+      }
+    } else {
+      addLog("They aren't here.", "error");
+    }
+  }, [state.player.location, addLog]);
+
+  const handleDialogueChoice = useCallback((choiceIdx: number) => {
+    if (!state.dialogue) return;
+    const { npcId, nodeId } = state.dialogue;
+    const node = DIALOGUE_TREES[npcId][nodeId];
+    
+    const availableOptions = node.options.filter((opt: any) => !opt.condition || opt.condition(state));
+    const option = availableOptions[choiceIdx];
+
+    if (option) {
+      addLog(`> ${option.text}`, "dim");
+      
+      if (option.action === 'end') {
+        setState(prev => ({ ...prev, dialogue: null }));
+        addLog("Conversation ended.", "system");
+        return;
+      }
+
+      let newState = { ...state };
+      if (typeof option.action === 'function') {
+        newState = option.action(newState);
+      }
+
+      const nextNodeId = option.nextNodeId;
+      const nextNode = DIALOGUE_TREES[npcId][nextNodeId];
+
+      setState({
+        ...newState,
+        dialogue: { npcId, nodeId: nextNodeId }
+      });
+
+      addLog(`${NPCS[npcId].name}: "${nextNode.text}"`, "npc");
+    } else {
+      addLog("Invalid choice.", "error");
+    }
+  }, [state, addLog]);
+
   // Parser
   const parseCommand = useCallback((cmd: string) => {
     const clean = cmd.trim().toLowerCase();
     if (!clean) return;
     
+    if (state.dialogue) {
+      const choice = parseInt(clean) - 1;
+      if (!isNaN(choice)) {
+        handleDialogueChoice(choice);
+      } else if (clean === 'end' || clean === 'exit' || clean === 'quit') {
+        setState(prev => ({ ...prev, dialogue: null }));
+        addLog("Conversation ended.", "system");
+      } else {
+        addLog("Type the number of your choice, or 'end' to leave.", "error");
+      }
+      return;
+    }
+
     addLog(`> ${cmd}`, "dim");
     
     const parts = clean.split(' ');
@@ -237,6 +309,12 @@ export function useGame() {
       case 'grab':
         if (args) take(args);
         else addLog("Take what?", "error");
+        break;
+      case 'talk':
+      case 'speak':
+      case 'chat':
+        if (args) talk(args);
+        else addLog("Talk to who?", "error");
         break;
       case 'i':
       case 'inv':
