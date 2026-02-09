@@ -188,7 +188,7 @@ export function useGame() {
   }, [addLog]);
 
   const talk = useCallback((npcName: string) => {
-    const here = Object.entries(NPCS).filter(([id, npc]) => npc.location === state.player.location);
+    const here = Object.entries(NPCS).filter(([id, npc]) => npc.location === stateRef.current.player.location);
     const npcId = here.find(([id, npc]) => 
       id === npcName || npc.name.toLowerCase().includes(npcName.toLowerCase())
     )?.[0];
@@ -207,14 +207,16 @@ export function useGame() {
     } else {
       addLog("They aren't here.", "error");
     }
-  }, [state.player.location, addLog]);
+  }, [addLog]);
 
   const handleDialogueChoice = useCallback((choiceIdx: number) => {
-    if (!state.dialogue) return;
-    const { npcId, nodeId } = state.dialogue;
+    // Logging side effects immediately based on current state
+    const currentState = stateRef.current;
+    if (!currentState.dialogue) return;
+
+    const { npcId, nodeId } = currentState.dialogue;
     const node = DIALOGUE_TREES[npcId][nodeId];
-    
-    const availableOptions = node.options.filter((opt: any) => !opt.condition || opt.condition(state));
+    const availableOptions = node.options.filter((opt: any) => !opt.condition || opt.condition(currentState));
     const option = availableOptions[choiceIdx];
 
     if (option) {
@@ -226,33 +228,38 @@ export function useGame() {
         return;
       }
 
-      let newState = { ...state };
-      if (typeof option.action === 'function') {
-        newState = option.action(newState);
-      }
-
       const nextNodeId = option.nextNodeId;
       const nextNode = DIALOGUE_TREES[npcId][nextNodeId];
 
-      setState({
-        ...newState,
-        dialogue: { npcId, nodeId: nextNodeId }
+      setState(prev => {
+        let nextState = { ...prev };
+        if (typeof option.action === 'function') {
+          nextState = option.action(nextState);
+        }
+        return {
+          ...nextState,
+          dialogue: { npcId, nodeId: nextNodeId }
+        };
       });
 
       addLog(`${NPCS[npcId].name}: "${nextNode.text}"`, "npc");
     } else {
       addLog("Invalid choice.", "error");
     }
-  }, [state, addLog]);
+  }, [addLog]);
 
   // Parser
   const parseCommand = useCallback((cmd: string) => {
     const clean = cmd.trim().toLowerCase();
     if (!clean) return;
     
-    if (state.dialogue) {
+    // Use the latest state from the ref to avoid stale closure issues
+    const currentState = stateRef.current;
+    
+    if (currentState.dialogue) {
+      // In dialogue mode, we only accept numbers or end commands
       const choice = parseInt(clean) - 1;
-      if (!isNaN(choice)) {
+      if (!isNaN(choice) && choice >= 0) {
         handleDialogueChoice(choice);
       } else if (clean === 'end' || clean === 'exit' || clean === 'quit') {
         setState(prev => ({ ...prev, dialogue: null }));
@@ -338,7 +345,7 @@ export function useGame() {
       default:
         addLog("I don't understand that command.", "error");
     }
-  }, [look, move, take, inventory, help, tick, addLog, state.player.hp, state.player.maxHp, state.ship.hull, state.ship.fuel]);
+  }, [look, move, take, talk, handleDialogueChoice, inventory, help, tick, addLog]);
 
   return {
     gameState: state,
