@@ -182,6 +182,7 @@ export function useGame() {
     addLog("  take [item] ......... Pick up an item");
     addLog("  talk [npc] .......... Speak with someone");
     addLog("  inv, i .............. Check inventory");
+    addLog("  rel ................. Show relationships");
     addLog("  status .............. Check ship and crew status");
     addLog("  wait ................ Pass time");
     addLog("  clear ............... Clear terminal");
@@ -195,11 +196,17 @@ export function useGame() {
 
     if (npcId) {
       if (DIALOGUE_TREES[npcId]) {
+        const relValue = stateRef.current.rel?.[npcId] ?? 0;
+        const tree = DIALOGUE_TREES[npcId];
+        const startNodeId =
+          relValue >= 3 && tree.start_high ? "start_high" :
+          relValue <= -2 && tree.start_low ? "start_low" :
+          "start";
         setState(prev => ({
           ...prev,
-          dialogue: { npcId, nodeId: 'start' }
+          dialogue: { npcId, nodeId: startNodeId }
         }));
-        const node = DIALOGUE_TREES[npcId].start;
+        const node = tree[startNodeId];
         addLog(`${NPCS[npcId].name}: "${node.text}"`, "npc");
       } else {
         addLog(`${NPCS[npcId].name} doesn't have much to say.`, "npc");
@@ -236,11 +243,31 @@ export function useGame() {
         if (typeof option.action === 'function') {
           nextState = option.action(nextState);
         }
+        if (option.relChange && option.relTarget) {
+          const rel = { ...nextState.rel };
+          rel[option.relTarget] = (rel[option.relTarget] || 0) + option.relChange;
+          nextState = { ...nextState, rel };
+        }
+        if (option.setFlag) {
+          nextState = {
+            ...nextState,
+            flags: { ...nextState.flags, [option.setFlag]: option.flagValue ?? true },
+          };
+        }
         return {
           ...nextState,
           dialogue: { npcId, nodeId: nextNodeId }
         };
       });
+
+      if (option.relChange && option.relTarget) {
+        const delta = option.relChange;
+        const name = NPCS[option.relTarget]?.name ?? option.relTarget;
+        addLog(`Relationship with ${name} ${delta > 0 ? "improved" : "worsened"} (${delta > 0 ? "+" : ""}${delta}).`, "info");
+      }
+      if (option.setFlag) {
+        addLog("Noted.", "dim");
+      }
 
       addLog(`${NPCS[npcId].name}: "${nextNode.text}"`, "npc");
     } else {
@@ -331,6 +358,23 @@ export function useGame() {
       case 'help':
         help();
         break;
+      case 'rel':
+      case 'rapport':
+      case 'relationships': {
+        const entries = Object.entries(state.rel || {});
+        if (entries.length === 0) {
+          addLog("No relationship data yet.", "dim");
+          break;
+        }
+        const sorted = entries.sort((a, b) => (b[1] || 0) - (a[1] || 0));
+        addLog("RELATIONSHIPS:", "accent");
+        sorted.forEach(([id, value]) => {
+          const name = NPCS[id]?.name ?? id;
+          const label = value > 0 ? `+${value}` : `${value}`;
+          addLog(`  ${name}: ${label}`, "info");
+        });
+        break;
+      }
       case 'clear':
         setState(prev => ({ ...prev, log: [] }));
         break;

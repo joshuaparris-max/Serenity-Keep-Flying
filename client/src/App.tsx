@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Router as WouterRouter } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,9 +7,10 @@ import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/LandingPage";
 import GamePage from "@/pages/GamePage";
 import { useAuth } from "@/hooks/use-auth";
+import { useEffect } from "react";
 
-function Router() {
-  const { user, isLoading } = useAuth();
+function AppRouter() {
+  const { user, isLoading, isOffline } = useAuth();
 
   if (isLoading) {
     return (
@@ -23,7 +24,7 @@ function Router() {
     <Switch>
       <Route path="/" component={LandingPage} />
       <Route path="/game">
-        {user ? <GamePage /> : <LandingPage />}
+        {user || isOffline ? <GamePage /> : <LandingPage />}
       </Route>
       <Route component={NotFound} />
     </Switch>
@@ -31,10 +32,23 @@ function Router() {
 }
 
 function App() {
+  const rawBase = import.meta.env.BASE_URL ?? "/";
+  const base = rawBase.endsWith("/") ? rawBase.slice(0, -1) || "/" : rawBase;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const { pathname, search, hash } = window.location;
+    if (pathname.endsWith("/index.html")) {
+      const clean = pathname.replace(/\/index\.html$/, "/");
+      window.history.replaceState({}, "", `${clean}${search}${hash}`);
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Router />
+        <WouterRouter base={base}>
+          <AppRouter />
+        </WouterRouter>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

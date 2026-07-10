@@ -62,7 +62,10 @@ export const INITIAL_STATE = {
   player:{location:'cargo_bay',inventory:[] as string[],credits:100,hp:10,maxHp:10,stats:{charm:2,grit:2,tech:2,stealth:2}},
   ship:{fuel:80,strain:0,hull:100,heat:0,docked:'persephone'},
   time:0,
-  rel:{mal:0,zoe:0,wash:0,kaylee:0,jayne:0,inara:0,simon:0,river:0,book:0} as Record<string, number>,
+  rel:{
+    mal:0,zoe:0,wash:0,kaylee:0,jayne:0,inara:0,simon:0,river:0,book:0,
+    badger_contact:0,merchant:0,rim_contact:0,patron:0
+  } as Record<string, number>,
   morale:5,
   quests:{cargo:{status:'available',stage:0},salvage:{status:'locked',stage:0},heist:{status:'locked',stage:0}} as Record<string, {status: string, stage: number}>,
   flags:{} as Record<string, any>,
@@ -83,12 +86,32 @@ export const DIALOGUE_TREES: Record<string, Record<string, any>> = {
       options: [
         { text: "Just checking in, Captain.", nextNodeId: "checking_in" },
         { text: "Any jobs on the horizon?", nextNodeId: "jobs", condition: (s: GameState) => s.quests.cargo.status === 'available' },
+        { text: "We keep flying. That's the plan.", nextNodeId: "keep_flying", relChange: 1, relTarget: "mal" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_high: {
+      text: "You're doing fine. Keep the crew steady and we'll be all right.",
+      options: [
+        { text: "Thanks, Captain.", nextNodeId: "checking_in", relChange: 1, relTarget: "mal" },
+        { text: "Any jobs on the horizon?", nextNodeId: "jobs", condition: (s: GameState) => s.quests.cargo.status === 'available' },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_low: {
+      text: "If this is about trouble, handle it. If it's about feelings, find Book.",
+      options: [
+        { text: "Understood.", nextNodeId: "checking_in", relChange: -1, relTarget: "mal" },
         { text: "[End Conversation]", action: 'end' }
       ]
     },
     checking_in: {
       text: "Well, we're still flying. That's about the best news I got. Get back to your post.",
       options: [{ text: "Yes, sir.", action: 'end' }]
+    },
+    keep_flying: {
+      text: "That's the only plan I've ever trusted. Good to hear it from you.",
+      options: [{ text: "Always.", action: 'end' }]
     },
     jobs: {
       text: "Badger's got a load of medical supplies sitting on Persephone. Needs 'em moved to a rim outpost. Quiet-like. You interested?",
@@ -108,12 +131,29 @@ export const DIALOGUE_TREES: Record<string, Record<string, any>> = {
       options: [
         { text: "How's the engine holding up?", nextNodeId: "engine_talk" },
         { text: "Captain sent me. We're heading out soon.", nextNodeId: "prep_talk", condition: (s: GameState) => s.quests.cargo.status === 'active' },
+        { text: "Could you teach me how to fix the ship?", nextNodeId: "teach_fix", relChange: 1, relTarget: "kaylee" },
+        { text: "Got a spare job I can help with?", nextNodeId: "spare_job" },
         { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_high: {
+      text: "Hey! You showed up right on time. The ship likes you.",
+      options: [
+        { text: "Teach me something new.", nextNodeId: "teach_fix", relChange: 1, relTarget: "kaylee" },
+        { text: "Any jobs to help with?", nextNodeId: "spare_job" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_low: {
+      text: "Careful where you step. She's sensitive.",
+      options: [
+        { text: "I'll be careful.", action: 'end' },
+        { text: "How's the engine holding up?", nextNodeId: "engine_talk" }
       ]
     },
     engine_talk: {
       text: "She's a bit cranky in the third compression coil, but I've got it patched with some grease and a prayer.",
-      options: [{ text: "You're a miracle worker.", nextNodeId: "miracle", action: (s: any) => ({ ...s, rel: { ...s.rel, kaylee: (s.rel.kaylee || 0) + 1 } }) }]
+      options: [{ text: "You're a miracle worker.", nextNodeId: "miracle", relChange: 1, relTarget: "kaylee", action: (s: any) => ({ ...s }) }]
     },
     miracle: {
       text: "Aw, stop it. She's the one doing the hard work. I just listen to her.",
@@ -122,6 +162,21 @@ export const DIALOGUE_TREES: Record<string, Record<string, any>> = {
     prep_talk: {
       text: "Oh! I'll get right on it. Just need to tighten a few things down. We're ready when you are!",
       options: [{ text: "Thanks, Kaylee.", action: 'end' }]
+    },
+    teach_fix: {
+      text: "Sure! Start simple: listen to the engine. If it rattles, check the compression coils and the fuel mix. Always keep a wrench and grease nearby.",
+      options: [
+        { text: "Got a first lesson?", nextNodeId: "lesson_one" },
+        { text: "Thanks, I'll remember that.", action: 'end' }
+      ]
+    },
+    lesson_one: {
+      text: "Lesson one: never force a part. If it won't go, it ain't meant to. Lesson two: label your tools. I lose mine when I don't.",
+      options: [{ text: "You're the best teacher.", action: 'end' }]
+    },
+    spare_job: {
+      text: "If you can hold a light and not drop it, you're hired. Tighten that panel on the port manifold.",
+      options: [{ text: "On it.", action: 'end' }]
     }
   },
   book: {
@@ -129,6 +184,21 @@ export const DIALOGUE_TREES: Record<string, Record<string, any>> = {
       text: "A little quiet contemplation is good for the soul, Captain. What can I do for you?",
       options: [
         { text: "Any advice for the road ahead?", nextNodeId: "advice" },
+        { text: "Just looking for some tea.", nextNodeId: "tea_talk" },
+        { text: "Would you say a prayer with me?", nextNodeId: "prayer", relChange: 1, relTarget: "book" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_high: {
+      text: "Good to see you, Captain. The ship feels lighter when we share a moment.",
+      options: [
+        { text: "Any advice for the road ahead?", nextNodeId: "advice", relChange: 1, relTarget: "book" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_low: {
+      text: "Peace be with you. Even if you don't ask for it.",
+      options: [
         { text: "Just looking for some tea.", nextNodeId: "tea_talk" },
         { text: "[End Conversation]", action: 'end' }
       ]
@@ -140,6 +210,308 @@ export const DIALOGUE_TREES: Record<string, Record<string, any>> = {
     tea_talk: {
       text: "It's always steeping. Help yourself. It helps with the nerves.",
       options: [{ text: "I might do that.", action: 'end' }]
+    },
+    prayer: {
+      text: "Of course. A quiet prayer can steady the hands and the heart.",
+      options: [{ text: "Thank you.", action: 'end' }]
+    }
+  },
+  zoe: {
+    start: {
+      text: "Sir. Need anything handled?",
+      options: [
+        { text: "Status report.", nextNodeId: "status" },
+        { text: "Thanks for watching our backs.", nextNodeId: "thanks", relChange: 1, relTarget: "zoe" },
+        { text: "Stand down.", action: 'end' }
+      ]
+    },
+    start_high: {
+      text: "You're getting the hang of it. Just keep your eyes open.",
+      options: [
+        { text: "Always.", nextNodeId: "status", relChange: 1, relTarget: "zoe" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_low: {
+      text: "If you want something, ask it straight.",
+      options: [
+        { text: "Status report.", nextNodeId: "status" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    status: {
+      text: "Ship's solid. Crew's steady. We keep flying.",
+      options: [{ text: "Good to hear.", action: 'end' }]
+    },
+    thanks: {
+      text: "It's my job. But I appreciate the sentiment.",
+      options: [{ text: "You earned it.", action: 'end' }]
+    }
+  },
+  wash: {
+    start: {
+      text: "Hey Cap'n. If you say 'sudden but inevitable betrayal' I will throw a dinosaur at you.",
+      options: [
+        { text: "How's she flying?", nextNodeId: "flying" },
+        { text: "Can I steer the ship for a bit?", nextNodeId: "steer", relChange: 1, relTarget: "wash" },
+        { text: "Teach me one flying trick.", nextNodeId: "trick" },
+        { text: "Keep her steady.", action: 'end' }
+      ]
+    },
+    start_high: {
+      text: "Good day for a little reckless flying. Kidding. Mostly.",
+      options: [
+        { text: "Show me a trick.", nextNodeId: "trick", relChange: 1, relTarget: "wash" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_low: {
+      text: "I'm doing my job. Try not to break anything while I'm up here.",
+      options: [
+        { text: "Got it.", action: 'end' },
+        { text: "How's she flying?", nextNodeId: "flying" }
+      ]
+    },
+    flying: {
+      text: "Like a leaf on the wind. A very sarcastic leaf.",
+      options: [{ text: "Noted.", action: 'end' }]
+    },
+    steer: {
+      text: "You want the stick? Fine. Easy on the yaw. Think gentle thoughts and keep the nose level.",
+      options: [{ text: "I can do gentle.", action: 'end' }]
+    },
+    trick: {
+      text: "Barrel roll? Kidding. Start with a clean drift. Match velocity first, then slide. It's all about timing.",
+      options: [{ text: "Got it.", action: 'end' }]
+    }
+  },
+  jayne: {
+    start: {
+      text: "What? I ain't bitin'.",
+      options: [
+        { text: "Eyes open. Trouble's coming.", nextNodeId: "trouble" },
+        { text: "Can I hold your gun?", nextNodeId: "gun" },
+        { text: "Teach me how you shoot.", nextNodeId: "shoot", relChange: 1, relTarget: "jayne" },
+        { text: "Never mind.", action: 'end' }
+      ]
+    },
+    start_high: {
+      text: "You got some grit. Don't get soft on me.",
+      options: [
+        { text: "Show me that gun.", nextNodeId: "gun", relChange: 1, relTarget: "jayne" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_low: {
+      text: "I ain't in the mood.",
+      options: [
+        { text: "Trouble's coming.", nextNodeId: "trouble" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    trouble: {
+      text: "Good. I like trouble. Trouble pays.",
+      options: [{ text: "Stay sharp.", action: 'end' }]
+    },
+    gun: {
+      text: "Ha. No. You can look at it if you keep your hands in your pockets.",
+      options: [{ text: "Worth a try.", action: 'end' }]
+    },
+    shoot: {
+      text: "Rule one: don't miss. Rule two: bring bigger guns. Rule three: see rule one.",
+      options: [{ text: "Solid advice.", action: 'end' }]
+    }
+  },
+  inara: {
+    start: {
+      text: "Captain. You look like the black has been unkind today.",
+      options: [
+        { text: "Just checking on you.", nextNodeId: "checkin" },
+        { text: "Need anything?", nextNodeId: "need" },
+        { text: "Would you like a hug?", nextNodeId: "hug", relChange: 1, relTarget: "inara" },
+        { text: "Could you teach me some calm techniques?", nextNodeId: "calm" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_high: {
+      text: "It's good to see you. The ship feels calmer when you are.",
+      options: [
+        { text: "That means a lot.", nextNodeId: "checkin", relChange: 1, relTarget: "inara" },
+        { text: "Would you like a hug?", nextNodeId: "hug", relChange: 1, relTarget: "inara" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_low: {
+      text: "If you need something, be direct.",
+      options: [
+        { text: "Need anything?", nextNodeId: "need" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    checkin: {
+      text: "I'm well, thank you. Serenity is... a surprising home.",
+      options: [{ text: "Glad to hear it.", action: 'end' }]
+    },
+    need: {
+      text: "Only a quiet hour and a clear sky. You can manage one of those, at least.",
+      options: [{ text: "I'll try.", action: 'end' }]
+    },
+    hug: {
+      text: "That's kind of you. A gentle hug would be welcome.",
+      options: [
+        { text: "Careful and respectful.", action: 'end' },
+        { text: "Only if you're comfortable.", action: 'end' }
+      ]
+    },
+    calm: {
+      text: "Breathe in for four, hold for four, out for six. The ship teaches patience if you let her.",
+      options: [{ text: "I'll practice that.", action: 'end' }]
+    }
+  },
+  simon: {
+    start: {
+      text: "Captain. Please tell me this isn't another emergency.",
+      options: [
+        { text: "How's River?", nextNodeId: "river" },
+        { text: "Medical status?", nextNodeId: "medical" },
+        { text: "Thank you for looking after her.", nextNodeId: "thanks", relChange: 1, relTarget: "simon" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_high: {
+      text: "I know we don't always see eye to eye, but I appreciate your help with River.",
+      options: [
+        { text: "She's family here.", nextNodeId: "river", relChange: 1, relTarget: "simon" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_low: {
+      text: "Make it quick, Captain. I'm busy.",
+      options: [
+        { text: "Medical status?", nextNodeId: "medical" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    river: {
+      text: "She's... stable. That's all I can say with confidence.",
+      options: [{ text: "Understood.", action: 'end' }]
+    },
+    medical: {
+      text: "Supplies are low but manageable. Don't get shot.",
+      options: [{ text: "I'll do my best.", action: 'end' }]
+    },
+    thanks: {
+      text: "It's the only thing that matters. For both of us.",
+      options: [{ text: "You have my word.", action: 'end' }]
+    }
+  },
+  river: {
+    start: {
+      text: "The ship whispers when you're not listening.",
+      options: [
+        { text: "What is it saying?", nextNodeId: "whisper" },
+        { text: "Are you alright?", nextNodeId: "alright" },
+        { text: "Do you want to draw?", nextNodeId: "draw", relChange: 1, relTarget: "river" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_high: {
+      text: "You hear it too. The quiet between the stars.",
+      options: [
+        { text: "Tell me what you hear.", nextNodeId: "whisper", relChange: 1, relTarget: "river" },
+        { text: "[End Conversation]", action: 'end' }
+      ]
+    },
+    start_low: {
+      text: "Too loud. Too bright.",
+      options: [
+        { text: "I'll give you space.", action: 'end' },
+        { text: "Are you alright?", nextNodeId: "alright" }
+      ]
+    },
+    whisper: {
+      text: "That the dark is only dark until you look at it.",
+      options: [{ text: "Thanks, River.", action: 'end' }]
+    },
+    alright: {
+      text: "Not broken. Just different. Like the sky after a storm.",
+      options: [{ text: "Rest if you can.", action: 'end' }]
+    },
+    draw: {
+      text: "I can show you the map in my head. It doesn't look like yours.",
+      options: [{ text: "I'd like to see it.", action: 'end' }]
+    }
+  },
+  badger_contact: {
+    start: {
+      text: "You the one with the ship? Badger said you might show.",
+      options: [
+        { text: "We can move the cargo.", nextNodeId: "cargo" },
+        { text: "No funny business.", nextNodeId: "no_funny", relChange: 1, relTarget: "badger_contact" },
+        { text: "Just passing through.", action: 'end' }
+      ]
+    },
+    cargo: {
+      text: "Good. Keep it quiet and we all get paid.",
+      options: [{ text: "We'll handle it.", action: 'end' }]
+    },
+    no_funny: {
+      text: "Wouldn't dream of it. Badger likes clean jobs.",
+      options: [{ text: "Good.", action: 'end' }]
+    }
+  },
+  merchant: {
+    start: {
+      text: "Looking to buy, sell, or just stare at my wares?",
+      options: [
+        { text: "Show me what you've got.", nextNodeId: "wares" },
+        { text: "Any good deals?", nextNodeId: "deals", relChange: 1, relTarget: "merchant" },
+        { text: "Maybe later.", action: 'end' }
+      ]
+    },
+    wares: {
+      text: "All the right parts at the right price. If you have the credits.",
+      options: [{ text: "I'll take a look.", action: 'end' }]
+    },
+    deals: {
+      text: "For you? Maybe. For me? Definitely.",
+      options: [{ text: "Fair enough.", action: 'end' }]
+    }
+  },
+  rim_contact: {
+    start: {
+      text: "Speak fast. I ain't got patience for slow talk.",
+      options: [
+        { text: "We brought supplies.", nextNodeId: "supplies" },
+        { text: "We're here to help.", nextNodeId: "help", relChange: 1, relTarget: "rim_contact" },
+        { text: "Understood.", action: 'end' }
+      ]
+    },
+    supplies: {
+      text: "Good. Folks round here need 'em. You get paid once it's unloaded.",
+      options: [{ text: "Fair enough.", action: 'end' }]
+    },
+    help: {
+      text: "Help's rare out here. I'll remember it.",
+      options: [{ text: "We do what we can.", action: 'end' }]
+    }
+  },
+  patron: {
+    start: {
+      text: "Haven't seen you before. That a good thing or a bad thing?",
+      options: [
+        { text: "Depends who you ask.", nextNodeId: "depends" },
+        { text: "Got any rumors?", nextNodeId: "rumors", relChange: 1, relTarget: "patron" },
+        { text: "I'll be on my way.", action: 'end' }
+      ]
+    },
+    depends: {
+      text: "Heh. I like you. Keep your back to a wall in this place.",
+      options: [{ text: "Thanks for the tip.", action: 'end' }]
+    },
+    rumors: {
+      text: "Alliance patrols been thick lately. Keep your transponder dark.",
+      options: [{ text: "Good to know.", action: 'end' }]
     }
   }
 };

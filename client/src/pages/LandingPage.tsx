@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import { Rocket, Terminal } from "lucide-react";
 
 export default function LandingPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isOffline } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -51,18 +51,30 @@ export default function LandingPage() {
         </div>
 
         <div className="space-y-4">
-          <Button 
-            onClick={() => window.location.href = "/api/login"}
-            className="w-full md:w-auto px-8 py-6 text-xl bg-[#d4944c] hover:bg-[#b0783a] text-[#0a0908] font-vt323 tracking-wider font-bold shadow-[0_0_10px_rgba(212,148,76,0.4)] transition-all hover:scale-105"
-          >
-            INITIALIZE UPLINK [LOGIN]
-          </Button>
+          {isOffline ? (
+            <Button
+              onClick={() => setLocation("/game")}
+              className="w-full md:w-auto px-8 py-6 text-xl bg-[#5a5] hover:bg-[#4c8f4c] text-[#0a0908] font-vt323 tracking-wider font-bold shadow-[0_0_10px_rgba(90,170,90,0.4)] transition-all hover:scale-105"
+            >
+              START LOCAL FLIGHT
+            </Button>
+          ) : (
+            <Button
+              onClick={() => window.location.href = "/api/login"}
+              className="w-full md:w-auto px-8 py-6 text-xl bg-[#d4944c] hover:bg-[#b0783a] text-[#0a0908] font-vt323 tracking-wider font-bold shadow-[0_0_10px_rgba(212,148,76,0.4)] transition-all hover:scale-105"
+            >
+              INITIALIZE UPLINK [LOGIN]
+            </Button>
+          )}
           
           <p className="text-xs text-[#706848] mt-4">
-            Authorized Personnel Only • Blue Sun Corp • 2517
+            {isOffline
+              ? "Offline mode • Local Cortex • 2517"
+              : "Authorized Personnel Only • Blue Sun Corp • 2517"}
           </p>
         </div>
       </div>
     </div>
   );
 }
+

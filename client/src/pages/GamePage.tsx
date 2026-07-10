@@ -14,7 +14,7 @@ export default function GamePage() {
   const { gameState, setGameState, parseCommand, addLog } = useGame();
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const { user, logout } = useAuth();
+  const { user, logout, isOffline } = useAuth();
   const { toast } = useToast();
 
   // Focus input on load
@@ -51,20 +51,24 @@ export default function GamePage() {
 
         <div className="flex items-center gap-2">
           <div className="hidden md:flex items-center gap-4 mr-4 text-xs font-mono text-[#706848]">
-            <span>USER: {user?.firstName || 'GUEST'}</span>
+            <span>USER: {isOffline ? "OFFLINE" : (user?.firstName || "GUEST")}</span>
             <span>CLASS: FIREFLY</span>
           </div>
           
-          <SaveManager currentState={gameState} onLoad={setGameState} />
-          
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => logout()}
-            className="text-[#c44] hover:bg-[#2a2820] hover:text-red-400"
-          >
-            <LogOut className="w-4 h-4" />
-          </Button>
+          {!isOffline && (
+            <>
+              <SaveManager currentState={gameState} onLoad={setGameState} />
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => logout()}
+                className="text-[#c44] hover:bg-[#2a2820] hover:text-red-400"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </>
+          )}
 
           {/* Mobile Menu Trigger */}
           <Sheet>
